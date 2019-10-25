@@ -5,9 +5,11 @@ default(fmt=:png)
 gr(size=(600,600))
 default(fmt=:png)
 
-function declupivot(A::Matrix, T; diagtol = 1e-12)
+function declupivot(A::Matrix, T::type; diagtol = 1e-12)
     n = size(A, 2)
     p = collect(1:n)
+    L = diagm(0 -> ones(T, n)
+    U = convert(Matrix{T}, A)
     for j = 1:n-1
         pivo, k = abs(A[j,j]), j
         for i = j+1:n
@@ -32,16 +34,17 @@ function declupivot(A::Matrix, T; diagtol = 1e-12)
     end
     L = tril(A, -1) + I
     U = triu(A)
-    return p, L, U
+    P = I * p
+    return P, L, U
 end
 
-function declurefine(A, b)
-    p, L, U = declupivot(copy(A))
+function declurefine(A, b, T)
+    P, L, U = declupivot(copy(A))
     c = b[p]
     y = L \ c
     x = U \ y
     E = zeros(length(b)*2)
-    println(p)
+    println(P)
     println(x)
     println(A*x - b)
     for i = 1:length(b)*2
