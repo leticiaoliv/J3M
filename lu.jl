@@ -1,15 +1,8 @@
-using Plots
-gr(size=(600,600))
-default(fmt=:png)
-
-gr(size=(600,600))
-default(fmt=:png)
-
 function declupivot(A::Matrix, T::type; diagtol = 1e-12)
     n = size(A, 2)
     p = collect(1:n)
     L = diagm(0 -> ones(T, n)
-    U = convert(Matrix{T}, A)
+    U = convert(Matrix(T), A)
     for j = 1:n-1
         pivo, k = abs(A[j,j]), j
         for i = j+1:n
@@ -38,33 +31,27 @@ function declupivot(A::Matrix, T::type; diagtol = 1e-12)
     return P, L, U
 end
 
-function declurefine(A, b, T)
-    P, L, U = declupivot(copy(A))
-    c = b[p]
-    y = L \ c
+function solvelu(A, b, T)
+    P, L, U = declupivot(copy(A),T)
+    y = zeros(T, n)
+    x = zeros(T, n)
+    y = L \ P * b
     x = U \ y
-    E = zeros(length(b)*2)
-    println(P)
-    println(x)
-    println(A*x - b)
-    for i = 1:length(b)*2
-        xᵢ = BigFloat.(x)
-        rᵢ = b - A * xᵢ
-        yᵢ = L \ rᵢ[p]
-        Δᵢ = U \ yᵢ
-        x = xᵢ + Δᵢ
-        eᵢ = BigFloat(norm(x - xᵢ))
-        E[i] = eᵢ
-        println("r$i = $(norm(rᵢ))")
-        println("x = $x")
-        println("Erro = $eᵢ")
-    end
-    return E
+    return x
 end
 
-E = declurefine(A,b)
-D = E[1:10]
-A=[1:10]
-scatter(A, D, c=:blue, leg=:false, yaxis=:log)
-name = @sprintf("Errorefinamento")
-png(name)
+function declurefine(A, b)
+    x = solvelu(A, b, BigFloat)
+    r = b - A * x
+    ϵ = sqrt(eps(BigFloat))
+    while abs(r) > ϵ
+        Δx = solvelu(A, r, BigFloat)
+        x += Δx
+        r = b - A * x
+    end
+    return x
+end
+
+A = BigFloat.rand(100,100)
+b = BigFloat.rand(100)
+T = Float16
